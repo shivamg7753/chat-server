@@ -11,14 +11,14 @@ import (
 
 func main() {
 
-    engine := html.New("./views", ".html")
+    engine := html.New("./internal/views", ".html")
 
     app := fiber.New(fiber.Config{
         Views: engine,
     })
 
     
-    app.Static("/static", "./static")
+    app.Static("/static", "./internal/static")
 
     
     h := handlers.NewAppHandler()

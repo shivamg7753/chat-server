@@ -58,7 +58,7 @@ func (s *WebSocketServer) HandleMessages() {
 }
 
 func renderTemplate(msg *internal.Message) []byte {
-    t, err := template.ParseFiles("views/message.html")
+    t, err := template.ParseFiles("./internal/views/message.html")
     if err != nil {
         log.Println("template error:", err)
     }
