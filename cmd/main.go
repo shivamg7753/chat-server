@@ -1,37 +1,62 @@
 package main
 
 import (
-    "chat-server/internal/handlers"
-    "chat-server/internal/websocket"
+	"chat-server/internal/config"
+	"chat-server/internal/database"
+	"chat-server/internal/handlers"
+	"chat-server/internal/websocket"
+	"log"
 
-    "github.com/gofiber/fiber/v2"
-    "github.com/gofiber/template/html/v2"
-    ws "github.com/gofiber/websocket/v2"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/template/html/v2"
+	ws "github.com/gofiber/websocket/v2"
 )
 
 func main() {
+	config.Load()
 
-    engine := html.New("./internal/views", ".html")
+	log.Println("Starting Chat Server...")
 
-    app := fiber.New(fiber.Config{
-        Views: engine,
-    })
+	db, err := database.NewDB(config.DBPath)
+	if err != nil {
+		log.Fatal("Failed to initialize database:", err)
+	}
+	defer db.Close()
 
-    
-    app.Static("/static", "./internal/static")
+	engine := html.New("./internal/views", ".html")
 
-    
-    h := handlers.NewAppHandler()
-    app.Get("/", h.HandleGetIndex)
+	app := fiber.New(fiber.Config{
+		Views: engine,
+	})
 
-    
-    server := websocket.NewWebSocketServer()
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
+	}))
 
-    app.Get("/ws", ws.New(func(c *ws.Conn) {
-        server.HandleWebSocket(c)
-    }))
+	app.Static("/static", "./internal/static")
 
-    go server.HandleMessages()
+	h := handlers.NewAppHandler(db)
+	app.Get("/", h.HandleGetIndex)
 
-    app.Listen(":3000")
+	app.Post("/api/register", h.HandleRegister)
+	app.Post("/api/login", h.HandleLogin)
+	app.Get("/api/messages", h.HandleGetMessages)
+
+	server := websocket.NewWebSocketServer(db)
+
+	app.Get("/ws", ws.New(func(c *ws.Conn) {
+		server.HandleWebSocket(c)
+	}))
+
+	go server.HandleMessages()
+
+	log.Println("Server running on http://localhost:" + config.Port)
+	log.Println("Endpoints: POST /api/register, POST /api/login, GET /api/messages, WS /ws?token=<jwt>")
+
+	if err := app.Listen(":" + config.Port); err != nil {
+		log.Fatal("Server failed:", err)
+	}
 }

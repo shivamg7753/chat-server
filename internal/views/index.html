@@ -2,34 +2,35 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <title>Chat App</title>
+  <meta charset="UTF-8">
+  <title>Chat App</title>
 
-    <script src="https://unpkg.com/htmx.org"></script>
-    <script src="https://unpkg.com/htmx.org/dist/ext/ws.js"></script>
+  <script src="https://unpkg.com/htmx.org"></script>
+  <script src="https://unpkg.com/htmx.org/dist/ext/ws.js"></script>
 
-    <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/style.css" />
 </head>
 
 <body>
 
-    <div class="container">
+  <div class="container">
 
-        <div class="chat-window" hx-ext="ws" ws-connect="/ws">
+    <div class="chat-window" hx-ext="ws" ws-connect="/ws">
 
-            <!-- Where messages appear -->
-            <div id="messages" class="messages"></div>
+  
+      <div id="messages" class="messages"></div>
 
-            <!-- Send form -->
-            <form ws-send>
-                <div class="input-area">
-                    <input type="text" name="text" placeholder="Type message..." autocomplete="off" required>
-                    <button type="submit">Send</button>
-                </div>
-            </form>
-
+      
+      <form ws-send>
+        <div class="input-area">
+          <input type="text" name="user" placeholder="Your name..." required>
+          <input type="text" name="text" placeholder="Type message..." autocomplete="off" required>
+          <button type="submit">Send</button>
         </div>
+      </form>
+
     </div>
+  </div>
 
 </body>
 
