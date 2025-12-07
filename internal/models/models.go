@@ -1,9 +1,10 @@
 package models
 
 type Message struct {
-	User string `json:"user"`
-	Text string `json:"text"`
-	Room string `json:"room,omitempty"`
+	User      string `json:"user"`
+	Text      string `json:"text"`
+	Room      string `json:"room,omitempty"`
+	Timestamp string `json:"timestamp,omitempty"`
 }
 
 type User struct {

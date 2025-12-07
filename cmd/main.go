@@ -38,14 +38,15 @@ func main() {
 
 	app.Static("/static", "./internal/static")
 
-	h := handlers.NewAppHandler(db)
+	server := websocket.NewWebSocketServer(db)
+
+	h := handlers.NewAppHandler(db, server)
 	app.Get("/", h.HandleGetIndex)
 
 	app.Post("/api/register", h.HandleRegister)
 	app.Post("/api/login", h.HandleLogin)
 	app.Get("/api/messages", h.HandleGetMessages)
-
-	server := websocket.NewWebSocketServer(db)
+	app.Get("/api/room-stats", h.HandleGetRoomStats)
 
 	app.Get("/ws", ws.New(func(c *ws.Conn) {
 		server.HandleWebSocket(c)
@@ -54,7 +55,7 @@ func main() {
 	go server.HandleMessages()
 
 	log.Println("Server running on http://localhost:" + config.Port)
-	log.Println("Endpoints: POST /api/register, POST /api/login, GET /api/messages, WS /ws?token=<jwt>")
+	log.Println("Endpoints: POST /api/register, POST /api/login, GET /api/messages, GET /api/room-stats, WS /ws?token=<jwt>")
 
 	if err := app.Listen(":" + config.Port); err != nil {
 		log.Fatal("Server failed:", err)

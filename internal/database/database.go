@@ -92,12 +92,12 @@ func (db *DB) SaveMessage(userID int64, username, text, room string) error {
 }
 
 type Message struct {
-	ID        int64
-	UserID    int64
-	Username  string
-	Text      string
-	Room      string
-	CreatedAt time.Time
+	ID        int64     `json:"id"`
+	UserID    int64     `json:"user_id"`
+	Username  string    `json:"user"`
+	Text      string    `json:"text"`
+	Room      string    `json:"room"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func (db *DB) GetRecentMessages(limit int) ([]Message, error) {

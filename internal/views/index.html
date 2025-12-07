@@ -3,35 +3,207 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Chat App</title>
-
-  <script src="https://unpkg.com/htmx.org"></script>
-  <script src="https://unpkg.com/htmx.org/dist/ext/ws.js"></script>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChatFlow - Modern Real-time Chat</title>
   <link rel="stylesheet" href="/static/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
-
-  <div class="container">
-
-    <div class="chat-window" hx-ext="ws" ws-connect="/ws">
-
-  
-      <div id="messages" class="messages"></div>
-
-      
-      <form ws-send>
-        <div class="input-area">
-          <input type="text" name="user" placeholder="Your name..." required>
-          <input type="text" name="text" placeholder="Type message..." autocomplete="off" required>
-          <button type="submit">Send</button>
+  <!-- Auth Container -->
+  <div id="auth-container" class="auth-container">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="logo">
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="40" height="40" rx="12" fill="url(#gradient1)" />
+            <path d="M20 10L28 16V24L20 30L12 24V16L20 10Z" fill="white" opacity="0.9" />
+            <defs>
+              <linearGradient id="gradient1" x1="0" y1="0" x2="40" y2="40">
+                <stop offset="0%" stop-color="#667eea" />
+                <stop offset="100%" stop-color="#764ba2" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <h1>ChatFlow</h1>
         </div>
-      </form>
+        <p class="tagline">Connect instantly, chat seamlessly</p>
+      </div>
 
+      <!-- Login Form -->
+      <div id="login-form" class="auth-form active">
+        <h2>Welcome Back</h2>
+        <form onsubmit="handleLogin(event)">
+          <div class="input-group">
+            <label for="login-username">Username</label>
+            <input type="text" id="login-username" placeholder="Enter your username" required autocomplete="username">
+          </div>
+          <div class="input-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" placeholder="Enter your password" required
+              autocomplete="current-password">
+          </div>
+          <div id="login-error" class="error-message"></div>
+          <button type="submit" class="btn-primary">
+            <span>Sign In</span>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M4 10H16M16 10L12 6M16 10L12 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </button>
+        </form>
+        <div class="auth-switch">
+          Don't have an account? <a href="#" onclick="switchToRegister(event)">Sign up</a>
+        </div>
+      </div>
+
+      <!-- Register Form -->
+      <div id="register-form" class="auth-form">
+        <h2>Create Account</h2>
+        <form onsubmit="handleRegister(event)">
+          <div class="input-group">
+            <label for="register-username">Username</label>
+            <input type="text" id="register-username" placeholder="Choose a username" required autocomplete="username">
+          </div>
+          <div class="input-group">
+            <label for="register-password">Password</label>
+            <input type="password" id="register-password" placeholder="Create a password" required
+              autocomplete="new-password">
+          </div>
+          <div id="register-error" class="error-message"></div>
+          <button type="submit" class="btn-primary">
+            <span>Create Account</span>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M4 10H16M16 10L12 6M16 10L12 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </button>
+        </form>
+        <div class="auth-switch">
+          Already have an account? <a href="#" onclick="switchToLogin(event)">Sign in</a>
+        </div>
+      </div>
     </div>
   </div>
 
+  <!-- Chat Container -->
+  <div id="chat-container" class="chat-container hidden">
+    <div class="chat-sidebar">
+      <div class="sidebar-header">
+        <div class="user-profile">
+          <div class="avatar">
+            <span id="user-avatar"></span>
+          </div>
+          <div class="user-info">
+            <h3 id="current-username">User</h3>
+            <span class="status online">Online</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="rooms-section">
+        <h4>Rooms</h4>
+        <div class="room-list">
+          <div class="room-item active" data-room="general" onclick="switchRoom('general')">
+            <div class="room-icon">#</div>
+            <div class="room-info">
+              <span class="room-name">General</span>
+              <span class="room-members">24 online</span>
+            </div>
+          </div>
+          <div class="room-item" data-room="random" onclick="switchRoom('random')">
+            <div class="room-icon">#</div>
+            <div class="room-info">
+              <span class="room-name">Random</span>
+              <span class="room-members">12 online</span>
+            </div>
+          </div>
+          <div class="room-item" data-room="tech" onclick="switchRoom('tech')">
+            <div class="room-icon">#</div>
+            <div class="room-info">
+              <span class="room-name">Tech Talk</span>
+              <span class="room-members">8 online</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="btn-logout" onclick="handleLogout()">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M13 14L17 10M17 10L13 6M17 10H7M7 17H4C3.44772 17 3 16.5523 3 16V4C3 3.44772 3.44772 3 4 3H7"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+          Logout
+        </button>
+      </div>
+    </div>
+
+    <div class="chat-main">
+      <div class="chat-header">
+        <div class="room-header">
+          <h2 id="current-room-name"># general</h2>
+          <p id="room-description">Welcome to the general chat room</p>
+        </div>
+        <div class="header-actions">
+          <button class="icon-btn" title="Search">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="2" />
+              <path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </button>
+          <button class="icon-btn" title="Settings">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <circle cx="10" cy="10" r="3" stroke="currentColor" stroke-width="2" />
+              <path
+                d="M10 1V4M10 16V19M19 10H16M4 10H1M16.95 16.95L14.83 14.83M5.17 5.17L3.05 3.05M16.95 3.05L14.83 5.17M5.17 14.83L3.05 16.95"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div id="messages" class="messages-container"></div>
+
+      <div class="message-input-container">
+        <form id="message-form" onsubmit="sendMessage(event)">
+          <div class="input-wrapper">
+            <button type="button" class="icon-btn" title="Add attachment">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M10 5V15M5 10H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              </svg>
+            </button>
+            <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" required>
+            <button type="button" class="icon-btn" title="Emoji">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="2" />
+                <circle cx="7" cy="8" r="1" fill="currentColor" />
+                <circle cx="13" cy="8" r="1" fill="currentColor" />
+                <path d="M7 12C7 12 8.5 14 10 14C11.5 14 13 12 13 12" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" />
+              </svg>
+            </button>
+            <button type="submit" class="btn-send">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M18 2L9 11M18 2L12 18L9 11M18 2L2 8L9 11" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+          </div>
+        </form>
+        <div class="typing-indicator hidden">
+          <span class="typing-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
+          <span class="typing-text">Someone is typing...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
 </body>
 
 </html>

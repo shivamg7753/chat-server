@@ -1,14 +1,13 @@
 package websocket
 
 import (
-	"bytes"
 	"chat-server/internal/auth"
 	"chat-server/internal/database"
 	"chat-server/internal/models"
 	"encoding/json"
-	"html/template"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/gofiber/websocket/v2"
 )
@@ -25,6 +24,7 @@ type WebSocketServer struct {
 type ClientInfo struct {
 	UserID   int64
 	Username string
+	Room     string
 }
 
 func NewWebSocketServer(db *database.DB) *WebSocketServer {
@@ -54,14 +54,20 @@ func (s *WebSocketServer) HandleWebSocket(c *websocket.Conn) {
 		return
 	}
 
+	room := c.Query("room")
+	if room == "" {
+		room = "general"
+	}
+
 	s.mu.Lock()
 	s.Clients[c] = &ClientInfo{
 		UserID:   claims.UserID,
 		Username: claims.Username,
+		Room:     room,
 	}
 	s.mu.Unlock()
 
-	log.Printf("User %s connected. Total clients: %d", claims.Username, len(s.Clients))
+	log.Printf("User %s connected to room %s. Total clients: %d", claims.Username, room, len(s.Clients))
 
 	defer func() {
 		s.mu.Lock()
@@ -88,6 +94,9 @@ func (s *WebSocketServer) HandleWebSocket(c *websocket.Conn) {
 		}
 
 		m.User = claims.Username
+		if m.Timestamp == "" {
+			m.Timestamp = time.Now().Format(time.RFC3339)
+		}
 
 		if err := s.db.SaveMessage(claims.UserID, m.User, m.Text, m.Room); err != nil {
 			log.Printf("Error saving message: %v", err)
@@ -103,33 +112,38 @@ func (s *WebSocketServer) HandleMessages() {
 	for {
 		msg := <-s.Broadcast
 
-		data := renderTemplate(msg)
+		data, err := json.Marshal(msg)
+		if err != nil {
+			log.Printf("Error marshaling message: %v", err)
+			continue
+		}
 
 		s.mu.RLock()
-		for client := range s.Clients {
-			err := client.WriteMessage(websocket.TextMessage, data)
-			if err != nil {
-				log.Printf("Error sending message to client: %v", err)
+		sentCount := 0
+		for client, clientInfo := range s.Clients {
+
+			if clientInfo.Room == msg.Room {
+				err := client.WriteMessage(websocket.TextMessage, data)
+				if err != nil {
+					log.Printf("Error sending message to client: %v", err)
+				} else {
+					sentCount++
+				}
 			}
 		}
 		s.mu.RUnlock()
 
-		log.Printf("Broadcasted message to %d clients", len(s.Clients))
+		log.Printf("Broadcasted message to %d clients in room %s", sentCount, msg.Room)
 	}
 }
 
-func renderTemplate(msg *models.Message) []byte {
-	t, err := template.ParseFiles("./internal/views/message.html")
-	if err != nil {
-		log.Printf("Template error: %v", err)
-		return []byte{}
-	}
+func (s *WebSocketServer) GetRoomCounts() map[string]int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 
-	var buf bytes.Buffer
-	if err := t.Execute(&buf, msg); err != nil {
-		log.Printf("Template execution error: %v", err)
-		return []byte{}
+	counts := make(map[string]int)
+	for _, clientInfo := range s.Clients {
+		counts[clientInfo.Room]++
 	}
-
-	return buf.Bytes()
+	return counts
 }

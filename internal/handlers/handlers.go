@@ -11,11 +11,19 @@ import (
 )
 
 type AppHandler struct {
-	db *database.DB
+	db       *database.DB
+	wsServer interface {
+		GetRoomCounts() map[string]int
+	}
 }
 
-func NewAppHandler(db *database.DB) *AppHandler {
-	return &AppHandler{db: db}
+func NewAppHandler(db *database.DB, wsServer interface {
+	GetRoomCounts() map[string]int
+}) *AppHandler {
+	return &AppHandler{
+		db:       db,
+		wsServer: wsServer,
+	}
 }
 
 func (h *AppHandler) HandleGetIndex(c *fiber.Ctx) error {
@@ -124,4 +132,9 @@ func (h *AppHandler) HandleGetMessages(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(messages)
+}
+
+func (h *AppHandler) HandleGetRoomStats(c *fiber.Ctx) error {
+	counts := h.wsServer.GetRoomCounts()
+	return c.JSON(counts)
 }
